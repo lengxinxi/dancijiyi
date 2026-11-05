@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,13 +38,19 @@ import com.example.dancijiyi.ui.theme.DancijiyiTheme
 @Composable
 fun WordListScreen(
     state: WordListUiState,
-    onKeywordChange: (String) -> Unit
+    onKeywordChange: (String) -> Unit,
+    onStartStudy: () -> Unit
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(title = {
-                Text("单词记忆", fontWeight = FontWeight.SemiBold)
-            })
+            TopAppBar(
+                title = {
+                    Text("单词记忆", fontWeight = FontWeight.SemiBold)
+                },
+                actions = {
+                    TextButton(onClick = onStartStudy) { Text("开始学习") }
+                }
+            )
         }
     ) { innerPadding ->
         Column(
@@ -169,7 +176,8 @@ private fun WordListPreview() {
                 masteredCount = 0,
                 reviewingCount = 0
             ),
-            onKeywordChange = {}
+            onKeywordChange = {},
+            onStartStudy = {}
         )
     }
 }
