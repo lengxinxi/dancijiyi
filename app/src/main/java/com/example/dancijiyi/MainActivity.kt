@@ -49,7 +49,7 @@ private fun AppRoot() {
             StudyScreen(
                 state = studyViewModel.state,
                 onFlip = studyViewModel::flip,
-                onNext = studyViewModel::next,
+                onGrade = studyViewModel::grade,
                 onPrevious = studyViewModel::previous,
                 onRestart = studyViewModel::newSession,
                 onExit = {

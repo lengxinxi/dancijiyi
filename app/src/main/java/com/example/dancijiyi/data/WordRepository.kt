@@ -69,11 +69,11 @@ class WordRepository(context: Context) {
                     date = date
                 )
             )
-            // 简单的记忆盒算法：认识则升级，不认识回退，等级够高视为已掌握
-            val newBox = if (result == RESULT_KNOWN) {
-                (word.box + 1).coerceAtMost(MAX_BOX)
-            } else {
-                (word.box - 1).coerceAtLeast(0)
+            // 记忆盒算法：认识升级、模糊原地不动、不认识回退；升到满级视为已掌握
+            val newBox = when (result) {
+                RESULT_KNOWN -> (word.box + 1).coerceAtMost(MAX_BOX)
+                RESULT_FUZZY -> word.box
+                else -> (word.box - 1).coerceAtLeast(0)
             }
             wordDao.updateAfterStudy(
                 id = word.id,
@@ -81,7 +81,7 @@ class WordRepository(context: Context) {
                 mastered = newBox >= MAX_BOX,
                 lastStudyAt = now,
                 correctCount = word.correctCount + if (result == RESULT_KNOWN) 1 else 0,
-                wrongCount = word.wrongCount + if (result == RESULT_KNOWN) 0 else 1
+                wrongCount = word.wrongCount + if (result == RESULT_UNKNOWN) 1 else 0
             )
         }
 

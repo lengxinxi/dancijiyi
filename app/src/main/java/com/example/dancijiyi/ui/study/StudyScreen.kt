@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dancijiyi.data.WordEntity
+import com.example.dancijiyi.data.WordRepository
 import com.example.dancijiyi.ui.theme.DancijiyiTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,7 +45,7 @@ import com.example.dancijiyi.ui.theme.DancijiyiTheme
 fun StudyScreen(
     state: StudyUiState,
     onFlip: () -> Unit,
-    onNext: () -> Unit,
+    onGrade: (Int) -> Unit,
     onPrevious: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit
@@ -80,6 +82,7 @@ fun StudyScreen(
 
                 state.finished -> FinishedBlock(
                     hasWords = state.words.isNotEmpty(),
+                    state = state,
                     onRestart = onRestart,
                     onExit = onExit
                 )
@@ -97,26 +100,33 @@ fun StudyScreen(
                     }
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = "点击卡片翻面查看释义",
+                        text = if (state.flipped) "凭记忆给自己判个分吧" else "点击卡片翻面查看释义",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.weight(1f))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 28.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onPrevious,
-                            enabled = state.index > 0,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("上一个") }
-                        Button(
-                            onClick = onNext,
-                            modifier = Modifier.weight(1f)
-                        ) { Text(if (state.index == state.words.lastIndex) "完成" else "下一个") }
+                    if (state.flipped) {
+                        GradeRow(
+                            state = state,
+                            onGrade = onGrade
+                        )
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 28.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = onPrevious,
+                                enabled = state.index > 0,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("上一个") }
+                            Button(
+                                onClick = onFlip,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("翻面") }
+                        }
                     }
                 }
             }
@@ -131,8 +141,62 @@ private fun CenterHint(text: String) {
     }
 }
 
+/**
+ * 三档判分按钮：不认识 / 模糊 / 认识。
+ * 已判过的词重新回到这里时按钮仍然可用（只改界面状态，不重复写库）。
+ */
 @Composable
-private fun FinishedBlock(hasWords: Boolean, onRestart: () -> Unit, onExit: () -> Unit) {
+private fun GradeRow(state: StudyUiState, onGrade: (Int) -> Unit) {
+    val gradedHint = state.currentGraded
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (gradedHint) {
+            val label = when (state.currentResult) {
+                WordRepository.RESULT_KNOWN -> "上次判分：认识"
+                WordRepository.RESULT_FUZZY -> "上次判分：模糊"
+                else -> "上次判分：不认识"
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = { onGrade(WordRepository.RESULT_UNKNOWN) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                ),
+                modifier = Modifier.weight(1f)
+            ) { Text("不认识") }
+            OutlinedButton(
+                onClick = { onGrade(WordRepository.RESULT_FUZZY) },
+                modifier = Modifier.weight(1f)
+            ) { Text("模糊") }
+            Button(
+                onClick = { onGrade(WordRepository.RESULT_KNOWN) },
+                modifier = Modifier.weight(1f)
+            ) { Text("认识") }
+        }
+    }
+}
+
+@Composable
+private fun FinishedBlock(
+    hasWords: Boolean,
+    state: StudyUiState,
+    onRestart: () -> Unit,
+    onExit: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -142,7 +206,21 @@ private fun FinishedBlock(hasWords: Boolean, onRestart: () -> Unit, onExit: () -
             text = if (hasWords) "这一组已学完" else "暂时没有可学习的单词",
             style = MaterialTheme.typography.headlineSmall
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
+        if (hasWords && state.gradedCount > 0) {
+            Text(
+                text = "认识 ${state.knownCount} · 模糊 ${state.fuzzyCount} · 不认识 ${state.unknownCount}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "本组正确率 ${state.accuracyText}（共 ${state.gradedCount} 词）",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+        }
         Text(
             text = if (hasWords) "稍后可以在统计页查看学习记录" else "去词库里看看，或者明天再来",
             style = MaterialTheme.typography.bodyMedium,
@@ -293,7 +371,7 @@ private fun StudyPreview() {
                 )
             ),
             onFlip = {},
-            onNext = {},
+            onGrade = {},
             onPrevious = {},
             onRestart = {},
             onExit = {}
