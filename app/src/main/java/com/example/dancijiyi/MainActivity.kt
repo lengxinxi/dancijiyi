@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dancijiyi.ui.stats.StatsScreen
+import com.example.dancijiyi.ui.stats.StatsViewModel
 import com.example.dancijiyi.ui.study.StudyScreen
 import com.example.dancijiyi.ui.study.StudyViewModel
 import com.example.dancijiyi.ui.theme.DancijiyiTheme
@@ -29,20 +31,34 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { List, Study }
+private enum class Screen { List, Study, Stats }
 
 @Composable
 private fun AppRoot() {
     var screen by rememberSaveable { mutableStateOf(Screen.List) }
     val listViewModel: WordListViewModel = viewModel()
     val studyViewModel: StudyViewModel = viewModel()
+    val statsViewModel: StatsViewModel = viewModel()
 
     when (screen) {
         Screen.List -> WordListScreen(
             state = listViewModel.state,
             onKeywordChange = listViewModel::onKeywordChange,
-            onStartStudy = { screen = Screen.Study }
+            onStartStudy = { screen = Screen.Study },
+            onOpenStats = {
+                statsViewModel.load()
+                screen = Screen.Stats
+            }
         )
+
+        Screen.Stats -> {
+            BackHandler { screen = Screen.List }
+            StatsScreen(
+                state = statsViewModel.state,
+                onRefresh = statsViewModel::load,
+                onExit = { screen = Screen.List }
+            )
+        }
 
         Screen.Study -> {
             BackHandler { screen = Screen.List }

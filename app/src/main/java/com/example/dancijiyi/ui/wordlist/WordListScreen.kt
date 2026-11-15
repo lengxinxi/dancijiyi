@@ -39,7 +39,8 @@ import com.example.dancijiyi.ui.theme.DancijiyiTheme
 fun WordListScreen(
     state: WordListUiState,
     onKeywordChange: (String) -> Unit,
-    onStartStudy: () -> Unit
+    onStartStudy: () -> Unit,
+    onOpenStats: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -48,6 +49,7 @@ fun WordListScreen(
                     Text("单词记忆", fontWeight = FontWeight.SemiBold)
                 },
                 actions = {
+                    TextButton(onClick = onOpenStats) { Text("统计") }
                     TextButton(onClick = onStartStudy) { Text("开始学习") }
                 }
             )
@@ -177,7 +179,8 @@ private fun WordListPreview() {
                 reviewingCount = 0
             ),
             onKeywordChange = {},
-            onStartStudy = {}
+            onStartStudy = {},
+            onOpenStats = {}
         )
     }
 }
