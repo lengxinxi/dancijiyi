@@ -1,5 +1,8 @@
 package com.example.dancijiyi.ui.stats
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,17 +18,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -157,17 +159,12 @@ fun StatsScreen(
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    state.week.asReversed().forEachIndexed { i, day ->
-                        DayRow(day)
-                        if (i != state.week.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-                }
+                WeekBarChart(
+                    week = state.week,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
             }
             if (!state.hasAnyRecord) {
                 Spacer(Modifier.height(10.dp))
@@ -218,32 +215,78 @@ private fun MetricItem(label: String, value: String, unit: String) {
     }
 }
 
+/**
+ * 最近 7 天柱状图：柱高按单日最大判分次数归一化，
+ * 今天高亮；柱顶显示当日次数，柱底显示日期与正确率。
+ * 用普通 Compose 布局（Box 背景色块）实现，不依赖第三方图表库。
+ */
 @Composable
-private fun DayRow(day: DayStat) {
+private fun WeekBarChart(week: List<DayStat>, modifier: Modifier = Modifier) {
+    val max = week.maxOfOrNull { it.total }?.coerceAtLeast(1) ?: 1
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = day.label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        if (day.total == 0) {
-            Text(
-                text = "未学习",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            Text(
-                text = "${day.total} 次 · 正确率 ${day.accuracy}%",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End
-            )
+        week.forEach { day ->
+            val isToday = day.label == "今天"
+            val barColor = if (isToday) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = if (day.total == 0) "" else day.total.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    if (day.total > 0) {
+                        val fraction by animateFloatAsState(
+                            targetValue = day.total.toFloat() / max,
+                            animationSpec = tween(durationMillis = 500),
+                            label = "barHeight"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.62f)
+                                .height(120.dp * fraction)
+                                .background(
+                                    barColor,
+                                    RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
+                                )
+                        )
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = day.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isToday) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 1
+                )
+                Text(
+                    text = if (day.total == 0) "—" else "${day.accuracy}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
