@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dancijiyi.data.DailyGoalStore
 import com.example.dancijiyi.data.WordEntity
 import com.example.dancijiyi.data.WordRepository
 import kotlinx.coroutines.launch
@@ -15,7 +16,10 @@ data class WordListUiState(
     val allWords: List<WordEntity> = emptyList(),
     val keyword: String = "",
     val masteredCount: Int = 0,
-    val reviewingCount: Int = 0
+    val reviewingCount: Int = 0,
+    /** 今日已学（去重单词数）与每日目标 */
+    val todayLearned: Int = 0,
+    val dailyGoal: Int = DailyGoalStore.DEFAULT_GOAL
 ) {
     /** 按关键字过滤后的列表（单词 / 释义均可匹配） */
     val visibleWords: List<WordEntity>
@@ -27,6 +31,11 @@ data class WordListUiState(
                 it.word.lowercase().contains(k) || it.meaning.lowercase().contains(k)
             }
         }
+
+    /** 今日进度 0..1，目标为 0 时视为未设置 */
+    val todayProgress: Float
+        get() = if (dailyGoal <= 0) 0f else (todayLearned.toFloat() / dailyGoal).coerceIn(0f, 1f)
+    val goalReached: Boolean get() = dailyGoal > 0 && todayLearned >= dailyGoal
 }
 
 class WordListViewModel(application: Application) : AndroidViewModel(application) {
@@ -47,12 +56,15 @@ class WordListViewModel(application: Application) : AndroidViewModel(application
                 loading = true
             )
             val words = repository.allWords()
+            val today = WordRepository.todayString()
             state = WordListUiState(
                 loading = false,
                 allWords = words,
                 keyword = state.keyword,
                 masteredCount = words.count { it.mastered },
-                reviewingCount = words.count { !it.mastered && it.lastStudyAt > 0 }
+                reviewingCount = words.count { !it.mastered && it.lastStudyAt > 0 },
+                todayLearned = repository.todayLearned(today),
+                dailyGoal = repository.dailyGoal()
             )
         }
     }

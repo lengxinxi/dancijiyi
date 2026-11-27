@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -66,6 +67,24 @@ fun WordListScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(Modifier.height(10.dp))
+            // 今日学习进度（自选加分项）：已学(去重) / 每日目标
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LinearProgressIndicator(
+                    progress = { state.todayProgress },
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = if (state.goalReached) {
+                        "今日 ${state.todayLearned}/${state.dailyGoal} 已达标"
+                    } else {
+                        "今日 ${state.todayLearned}/${state.dailyGoal}"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 10.dp)
+                )
+            }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = state.keyword,

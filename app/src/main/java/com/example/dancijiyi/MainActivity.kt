@@ -56,6 +56,7 @@ private fun AppRoot() {
             StatsScreen(
                 state = statsViewModel.state,
                 onRefresh = statsViewModel::load,
+                onGoalChange = statsViewModel::changeGoal,
                 onExit = { screen = Screen.List }
             )
         }

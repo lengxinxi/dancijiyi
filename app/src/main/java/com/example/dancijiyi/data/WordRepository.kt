@@ -4,6 +4,9 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 单词数据仓库：负责从 assets 导入内置词库，并对外暴露数据访问入口。
@@ -13,6 +16,7 @@ class WordRepository(context: Context) {
     private val appContext = context.applicationContext
     private val wordDao = AppDatabase.get(appContext).wordDao()
     private val recordDao = AppDatabase.get(appContext).studyRecordDao()
+    private val goalStore = DailyGoalStore.get(appContext)
 
     /**
      * 首次启动时把 assets/words.json 导入数据库。
@@ -101,12 +105,23 @@ class WordRepository(context: Context) {
     suspend fun totalCorrectRecords(): Int =
         withContext(Dispatchers.IO) { recordDao.totalCorrectCount() }
 
+    /** 每日目标（同步读 SharedPreferences，开销可忽略） */
+    fun dailyGoal(): Int = goalStore.get()
+
+    /** 修改每日目标，返回收敛后的合法值 */
+    fun setDailyGoal(goal: Int): Int = goalStore.set(goal)
+
     companion object {
         const val ASSET_NAME = "words.json"
         const val RESULT_FUZZY = 0
         const val RESULT_KNOWN = 1
         const val RESULT_UNKNOWN = 2
         private const val MAX_BOX = 5
+
+        private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
+        /** 当天日期（yyyy-MM-dd），与 study_records.date 的格式一致 */
+        fun todayString(): String = DATE_FORMAT.format(Date())
 
         @Volatile
         private var instance: WordRepository? = null

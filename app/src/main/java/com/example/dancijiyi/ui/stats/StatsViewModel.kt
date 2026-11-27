@@ -37,11 +37,18 @@ data class StatsUiState(
     val totalRecords: Int = 0,
     val totalCorrect: Int = 0,
     /** 最近 7 天（含今天，日期升序，缺失的天补 0） */
-    val week: List<DayStat> = emptyList()
+    val week: List<DayStat> = emptyList(),
+    /** 每日目标（个/天） */
+    val dailyGoal: Int = 20
 ) {
     val todayAccuracy: Int get() = if (todayTotal == 0) 0 else todayCorrect * 100 / todayTotal
     val totalAccuracy: Int get() = if (totalRecords == 0) 0 else totalCorrect * 100 / totalRecords
     val masteredRatio: Float get() = if (totalWords == 0) 0f else mastered.toFloat() / totalWords
+
+    /** 今日目标进度 0..1 */
+    val todayProgress: Float
+        get() = if (dailyGoal <= 0) 0f else (todayLearned.toFloat() / dailyGoal).coerceIn(0f, 1f)
+    val goalReached: Boolean get() = dailyGoal > 0 && todayLearned >= dailyGoal
 
     /** 一周里单日最大值，画图时用来算相对高度 */
     val weekMax: Int get() = (week.maxOfOrNull { it.total } ?: 0).coerceAtLeast(1)
@@ -76,9 +83,16 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 reviewing = repository.reviewingWords(),
                 totalRecords = repository.totalRecords(),
                 totalCorrect = repository.totalCorrectRecords(),
-                week = week
+                week = week,
+                dailyGoal = repository.dailyGoal()
             )
         }
+    }
+
+    /** 调整每日目标（±delta），写入 SharedPreferences 后刷新界面 */
+    fun changeGoal(delta: Int) {
+        val newGoal = repository.setDailyGoal(state.dailyGoal + delta)
+        state = state.copy(dailyGoal = newGoal)
     }
 
     companion object {

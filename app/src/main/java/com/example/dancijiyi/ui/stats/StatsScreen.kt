@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import com.example.dancijiyi.ui.theme.DancijiyiTheme
 fun StatsScreen(
     state: StatsUiState,
     onRefresh: () -> Unit,
+    onGoalChange: (Int) -> Unit,
     onExit: () -> Unit
 ) {
     Scaffold(
@@ -81,15 +83,65 @@ fun StatsScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                 )
             ) {
+                Column(modifier = Modifier.padding(vertical = 20.dp, horizontal = 16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        MetricItem("学习词数", state.todayLearned.toString(), "个")
+                        MetricItem("判分次数", state.todayTotal.toString(), "次")
+                        MetricItem("正确率", state.todayAccuracy.toString(), "%")
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    // 今日进度：已学(去重) / 每日目标
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        LinearProgressIndicator(
+                            progress = { state.todayProgress },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = if (state.goalReached) "已达标" else "${state.todayLearned}/${state.dailyGoal}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (state.goalReached) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.padding(start = 10.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            // 每日目标设置
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MetricItem("学习词数", state.todayLearned.toString(), "个")
-                    MetricItem("判分次数", state.todayTotal.toString(), "次")
-                    MetricItem("正确率", state.todayAccuracy.toString(), "%")
+                    Text(
+                        text = "每日目标",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    )
+                    TextButton(onClick = { onGoalChange(-5) }) { Text("-5") }
+                    Text(
+                        text = "${state.dailyGoal} 词",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    TextButton(onClick = { onGoalChange(5) }) { Text("+5") }
                 }
             }
             if (state.todayTotal == 0) {
@@ -317,6 +369,7 @@ private fun StatsPreview() {
                 )
             ),
             onRefresh = {},
+            onGoalChange = {},
             onExit = {}
         )
     }
