@@ -41,7 +41,8 @@ fun WordListScreen(
     state: WordListUiState,
     onKeywordChange: (String) -> Unit,
     onStartStudy: () -> Unit,
-    onOpenStats: () -> Unit
+    onOpenStats: () -> Unit,
+    onOpenSearch: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -50,8 +51,9 @@ fun WordListScreen(
                     Text("单词记忆", fontWeight = FontWeight.SemiBold)
                 },
                 actions = {
+                    TextButton(onClick = onOpenSearch) { Text("查词") }
                     TextButton(onClick = onOpenStats) { Text("统计") }
-                    TextButton(onClick = onStartStudy) { Text("开始学习") }
+                    TextButton(onClick = onStartStudy) { Text("学习") }
                 }
             )
         }
@@ -199,7 +201,8 @@ private fun WordListPreview() {
             ),
             onKeywordChange = {},
             onStartStudy = {},
-            onOpenStats = {}
+            onOpenStats = {},
+            onOpenSearch = {}
         )
     }
 }

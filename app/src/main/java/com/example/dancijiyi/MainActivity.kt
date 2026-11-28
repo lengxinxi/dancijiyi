@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dancijiyi.ui.search.OnlineSearchScreen
+import com.example.dancijiyi.ui.search.OnlineSearchViewModel
 import com.example.dancijiyi.ui.stats.StatsScreen
 import com.example.dancijiyi.ui.stats.StatsViewModel
 import com.example.dancijiyi.ui.study.StudyScreen
@@ -31,7 +33,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { List, Study, Stats }
+private enum class Screen { List, Study, Stats, Search }
 
 @Composable
 private fun AppRoot() {
@@ -39,6 +41,7 @@ private fun AppRoot() {
     val listViewModel: WordListViewModel = viewModel()
     val studyViewModel: StudyViewModel = viewModel()
     val statsViewModel: StatsViewModel = viewModel()
+    val searchViewModel: OnlineSearchViewModel = viewModel()
 
     when (screen) {
         Screen.List -> WordListScreen(
@@ -48,8 +51,27 @@ private fun AppRoot() {
             onOpenStats = {
                 statsViewModel.load()
                 screen = Screen.Stats
-            }
+            },
+            onOpenSearch = { screen = Screen.Search }
         )
+
+        Screen.Search -> {
+            BackHandler {
+                searchViewModel.stopAudio()
+                screen = Screen.List
+            }
+            OnlineSearchScreen(
+                state = searchViewModel.state,
+                onQueryChange = searchViewModel::onQueryChange,
+                onSearch = searchViewModel::search,
+                onPlayAudio = searchViewModel::playAudio,
+                onStopAudio = searchViewModel::stopAudio,
+                onExit = {
+                    searchViewModel.stopAudio()
+                    screen = Screen.List
+                }
+            )
+        }
 
         Screen.Stats -> {
             BackHandler { screen = Screen.List }
